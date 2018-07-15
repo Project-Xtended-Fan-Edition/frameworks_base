@@ -32,6 +32,7 @@ import android.view.Display;
 import android.view.DisplayCutout;
 import android.view.IWindowManager;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
@@ -66,6 +67,7 @@ public class PhoneStatusBarView extends FrameLayout implements Callbacks {
     private final CommandQueue mCommandQueue;
     private final StatusBarWindowController mStatusBarWindowController;
 
+    private ClockController mClockController;
     private int mRotationOrientation = -1;
     private RotationButtonController mRotationButtonController;
     @Nullable
@@ -172,6 +174,7 @@ public class PhoneStatusBarView extends FrameLayout implements Callbacks {
     @Override
     public void onFinishInflate() {
         super.onFinishInflate();
+        mClockController = new ClockController(getContext(), this);
         mCutoutSpace = findViewById(R.id.cutout_space_view);
         mStatusBarContents = (ViewGroup) findViewById(R.id.status_bar_contents);
 
@@ -181,6 +184,7 @@ public class PhoneStatusBarView extends FrameLayout implements Callbacks {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        mClockController.addDarkReceiver();
         if (updateDisplayParameters()) {
             updateLayoutForCutout();
             updateWindowHeight();
@@ -194,6 +198,7 @@ public class PhoneStatusBarView extends FrameLayout implements Callbacks {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        mClockController.removeDarkReceiver();
         mDisplayCutout = null;
 
         if (mRotationButtonController != null) {
@@ -410,6 +415,19 @@ public class PhoneStatusBarView extends FrameLayout implements Callbacks {
                 insets.top,
                 insets.right,
                 getPaddingBottom());
+
+        // Apply negative paddings to centered area layout so that we'll actually be on the center.
+        final int winRotation = getDisplay().getRotation();
+        LayoutParams centeredAreaParams =
+                (LayoutParams) findViewById(R.id.centered_area).getLayoutParams();
+        centeredAreaParams.leftMargin =
+                winRotation == Surface.ROTATION_0 ? -insets.left : 0;
+        centeredAreaParams.rightMargin =
+                winRotation == Surface.ROTATION_0 ? -insets.right : 0;
+    }
+
+    public ClockController getClockController() {
+        return mClockController;
     }
 
     private void updateWindowHeight() {
