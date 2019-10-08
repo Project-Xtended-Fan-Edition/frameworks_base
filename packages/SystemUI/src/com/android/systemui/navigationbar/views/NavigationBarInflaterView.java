@@ -30,6 +30,7 @@ import android.content.res.Configuration;
 import android.graphics.drawable.Icon;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -67,10 +68,13 @@ import java.util.Objects;
 public class NavigationBarInflaterView extends FrameLayout implements TunerService.Tunable {
     private static final String TAG = "NavBarInflater";
 
-    public static final String NAV_BAR_VIEWS = "sysui_nav_bar";
+    public static final String NAVBAR_LAYOUT_VIEWS =
+            Settings.Secure.NAVBAR_LAYOUT_VIEWS;
+    private static final String NAVBAR_INVERSE_LAYOUT =
+            Settings.Secure.NAVBAR_INVERSE_LAYOUT;
+
     public static final String NAV_BAR_LEFT = "sysui_nav_bar_left";
     public static final String NAV_BAR_RIGHT = "sysui_nav_bar_right";
-    public static final String NAV_BAR_INVERSE = "sysui_nav_bar_inverse";
     public static final String NAV_BAR_COMPACT = "sysui_nav_bar_compact";
 
     public static final String MENU_IME_ROTATE = "menu_ime";
@@ -142,6 +146,7 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
 
     private boolean mIsVertical;
     private boolean mAlternativeOrder;
+    private boolean mUsingCustomLayout;
 
     private OverviewProxyService mOverviewProxyService;
     private int mNavBarMode = NAV_BAR_MODE_3BUTTON;
@@ -210,15 +215,17 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
         mNavBarMode = mode;
         updateHint();
         updateSpace();
+        onLikelyDefaultLayoutChange();
     }
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        mTunerService.addTunable(this, NAV_BAR_INVERSE);
         mTunerService.addTunable(this, KEY_NAVIGATION_HINT);
+        mTunerService.addTunable(this, NAVBAR_INVERSE_LAYOUT);
         mTunerService.addTunable(this, NAV_BAR_COMPACT);
         mTunerService.addTunable(this, NAVIGATION_BAR_IME_SPACE);
+        mTunerService.addTunable(this, NAVBAR_LAYOUT_VIEWS);
     }
 
     @Override
@@ -230,7 +237,7 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
 
     @Override
     public void onTuningChanged(String key, String newValue) {
-        if (NAV_BAR_INVERSE.equals(key)) {
+        if (NAVBAR_INVERSE_LAYOUT.equals(key)) {
             mInverseLayout = TunerService.parseIntegerSwitch(newValue, false);
             updateLayoutInversion();
         } else if (KEY_NAVIGATION_HINT.equals(key)) {
@@ -248,6 +255,12 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
                     LineageSettings.System.NAVIGATION_BAR_IME_SPACE, 0);
             updateSpace();
             onLikelyDefaultLayoutChange(true);
+        } else if (NAVBAR_LAYOUT_VIEWS.equals(key)) {
+            if (newValue != null) {
+                setNavigationBarLayout(newValue);
+            } else {
+                setNavigationBarLayout("default");
+            }
         }
         if (QuickStepContract.isGesturalMode(mNavBarMode)) {
             setNavigationBarLayout(newValue);
@@ -260,7 +273,18 @@ public class NavigationBarInflaterView extends FrameLayout implements TunerServi
         updateLayoutInversion();
     }
 
+    private void setNavigationBarLayout(String layoutValue) {
+        if (!Objects.equals(mCurrentLayout, layoutValue)) {
+            mUsingCustomLayout = !layoutValue.equals("default");
+            clearViews();
+            inflateLayout(layoutValue);
+        }
+    }
+
     public void onLikelyDefaultLayoutChange() {
+        // Don't override custom layouts
+        if (mUsingCustomLayout) return;
+
         // Reevaluate new layout
         final String newValue = getDefaultLayout();
         if (!Objects.equals(mCurrentLayout, newValue)) {
