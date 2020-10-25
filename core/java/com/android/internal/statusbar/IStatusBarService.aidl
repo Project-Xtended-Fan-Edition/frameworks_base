@@ -239,4 +239,6 @@ interface IStatusBarService
      * Toggle recent apps.
      */
     void toggleRecentApps();
+
+    void screenPinningStateChanged(boolean enabled);
 }
