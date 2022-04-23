@@ -23,4 +23,7 @@
     <!-- Name of the VoWiFi status bar icon. -->
     <string name="status_bar_vowifi">Wi-Fi calling (VoWiFi)</string>
 
+    <!-- 5G toggle in Internet Dialog -->
+    <string name="enable_fiveg">Enable 5G</string>
+
 </resources>
