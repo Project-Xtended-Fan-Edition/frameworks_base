@@ -117,7 +117,9 @@ public class SystemSettings {
                 Settings.System.NOTIFICATION_COOLDOWN_ENABLED,
                 Settings.System.NOTIFICATION_COOLDOWN_ALL,
                 Settings.System.NOTIFICATION_COOLDOWN_VIBRATE_UNLOCKED,
-                Settings.System.HAPTIC_ON_SLIDER
+                Settings.System.HAPTIC_ON_SLIDER,
+                // Evolution X additions
+                Settings.System.MAX_VISIBLE_NOTIFICATION_ICONS
         ));
         if (Flags.backUpSmoothDisplayAndForcePeakRefreshRate()) {
             settings.add(Settings.System.PEAK_REFRESH_RATE);

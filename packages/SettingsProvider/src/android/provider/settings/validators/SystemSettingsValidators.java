@@ -266,5 +266,7 @@ public class SystemSettingsValidators {
         VALIDATORS.put(System.ADAPTIVE_PLAYBACK_TIMEOUT, NON_NEGATIVE_INTEGER_VALIDATOR);
         VALIDATORS.put(System.STATUS_BAR_BATTERY_STYLE, new InclusiveIntegerRangeValidator(0, 25));
         VALIDATORS.put(System.HAPTIC_ON_SLIDER, BOOLEAN_VALIDATOR);
+        // Evolution X additions
+        VALIDATORS.put(System.MAX_VISIBLE_NOTIFICATION_ICONS, NON_NEGATIVE_INTEGER_VALIDATOR);
     }
 }
