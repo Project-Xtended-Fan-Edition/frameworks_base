@@ -130,6 +130,9 @@ public class ThemeOverlayApplier implements Dumpable {
     @VisibleForTesting
     static final String OVERLAY_CATEGORY_POWER_MENU =
             "android.theme.customization.powermenu";
+    @VisibleForTesting
+    static final String OVERLAY_CATEGORY_DATA =
+            "android.customization.sb_data";
 
     /*
      * All theme customization categories used by the system, in order that they should be applied,
@@ -151,8 +154,9 @@ public class ThemeOverlayApplier implements Dumpable {
             OVERLAY_CATEGORY_NAVBAR,
             OVERLAY_CATEGORY_LOCK_CLOCK_FONT,
             OVERLAY_CATEGORY_PROGRESS_BAR,
-            OVERLAY_CATEGORY_POWER_MENU);
-
+            OVERLAY_CATEGORY_POWER_MENU,
+            OVERLAY_CATEGORY_DATA);
+  
     /* Categories that need to be applied to the current user as well as the system user. */
     @VisibleForTesting
     static final Set<String> SYSTEM_USER_CATEGORIES = Sets.newHashSet(
@@ -166,7 +170,8 @@ public class ThemeOverlayApplier implements Dumpable {
             OVERLAY_CATEGORY_NAVBAR,
             OVERLAY_CATEGORY_LOCK_CLOCK_FONT,
             OVERLAY_CATEGORY_PROGRESS_BAR,
-            OVERLAY_CATEGORY_POWER_MENU);
+            OVERLAY_CATEGORY_POWER_MENU,
+            OVERLAY_CATEGORY_DATA);
 
     /* Allowed overlay categories for each target package. */
     private final Map<String, Set<String>> mTargetPackageToCategories = new ArrayMap<>();
@@ -218,6 +223,7 @@ public class ThemeOverlayApplier implements Dumpable {
         mCategoryToTargetPackage.put(OVERLAY_CATEGORY_LOCK_CLOCK_FONT, ANDROID_PACKAGE);
         mCategoryToTargetPackage.put(OVERLAY_CATEGORY_PROGRESS_BAR, ANDROID_PACKAGE);
         mCategoryToTargetPackage.put(OVERLAY_CATEGORY_POWER_MENU, SYSUI_PACKAGE);
+        mCategoryToTargetPackage.put(OVERLAY_CATEGORY_DATA, SYSUI_PACKAGE);
 
         dumpManager.registerDumpable(TAG, this);
     }
