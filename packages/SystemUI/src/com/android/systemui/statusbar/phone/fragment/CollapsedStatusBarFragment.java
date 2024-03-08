@@ -179,6 +179,7 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
     private LyricController mLyricController;
     private View mCustomCarrierLabel;
     private int mShowCarrierLabel;
+    private boolean mHasCarrierLabel;
 
     private List<String> mBlockedIcons = new ArrayList<>();
     private Map<Startable, Startable.State> mStartableStates = new ArrayMap<>();
@@ -1135,11 +1136,12 @@ public class CollapsedStatusBarFragment extends Fragment implements CommandQueue
         mShowCarrierLabel = Settings.System.getIntForUser(mContentResolver,
                 Settings.System.STATUS_BAR_SHOW_CARRIER, 1,
                 UserHandle.USER_CURRENT);
+        mHasCarrierLabel = (mShowCarrierLabel == 2 || mShowCarrierLabel == 3);
         setCarrierLabel(animate);
     }
 
     private void setCarrierLabel(boolean animate) {
-        if (mShowCarrierLabel == 2 || mShowCarrierLabel == 3) {
+        if (mHasCarrierLabel) {
             animateShow(mCustomCarrierLabel, animate);
         } else {
             animateHide(mCustomCarrierLabel, animate, false);
