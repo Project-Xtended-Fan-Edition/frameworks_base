@@ -258,10 +258,10 @@ public abstract class LogoImage extends ImageView implements DarkReceiver {
                 Settings.System.STATUS_BAR_LOGO_POSITION, 0, UserHandle.USER_CURRENT);
         mLogoStyle = Settings.System.getIntForUser(mContext.getContentResolver(),
                 Settings.System.STATUS_BAR_LOGO_STYLE, 0, UserHandle.USER_CURRENT);
-        mLogoColor = Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.STATUS_BAR_LOGO_COLOR, 0);
-        mLogoColorCustom = Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.STATUS_BAR_LOGO_COLOR_PICKER, 0xff1a73e8);
+        mLogoColor = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.STATUS_BAR_LOGO_COLOR, 0, UserHandle.USER_CURRENT);
+        mLogoColorCustom = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.STATUS_BAR_LOGO_COLOR_PICKER, 0xff1a73e8, UserHandle.USER_CURRENT);
         if (!mShowLogo || !isLogoVisible()) {
             setImageDrawable(null);
             setVisibility(View.GONE);
