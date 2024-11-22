@@ -32,7 +32,6 @@ import com.android.systemui.animation.ActivityTransitionAnimator;
 import com.android.systemui.animation.AnimationFeatureFlags;
 import com.android.systemui.animation.DialogTransitionAnimator;
 import com.android.systemui.bouncer.domain.interactor.AlternateBouncerInteractor;
-import com.android.systemui.colorextraction.SysuiColorExtractor;
 import com.android.systemui.dagger.SysUISingleton;
 import com.android.systemui.dagger.qualifiers.Background;
 import com.android.systemui.dagger.qualifiers.Main;
@@ -103,8 +102,7 @@ public interface CentralSurfacesDependenciesModule {
             MediaDataManager mediaDataManager,
             DumpManager dumpManager,
             @Background Executor backgroundExecutor,
-            @Main Handler handler,
-            SysuiColorExtractor colorExtractor) {
+            @Main Handler handler) {
         return new NotificationMediaManager(
                 context,
                 visibilityProvider,
@@ -113,8 +111,7 @@ public interface CentralSurfacesDependenciesModule {
                 mediaDataManager,
                 dumpManager,
                 backgroundExecutor,
-                handler,
-                colorExtractor);
+                handler);
     }
 
     /** */
