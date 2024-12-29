@@ -1577,11 +1577,11 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
         mBackActionInteractor.setup(mQsController, mShadeSurface);
     }
 
-    protected NotificationShadeWindowViewController getNotificationShadeWindowViewController() {
+    public NotificationShadeWindowViewController getNotificationShadeWindowViewController() {
         return mNotificationShadeWindowViewControllerLazy.get();
     }
 
-    protected NotificationShadeWindowView getNotificationShadeWindowView() {
+    public NotificationShadeWindowView getNotificationShadeWindowView() {
         return getNotificationShadeWindowViewController().getView();
     }
 
@@ -3388,4 +3388,25 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
             ExpandableNotificationRow associatedView) {
         return mNotificationAnimationProvider.getAnimatorController(associatedView);
     }
+
+    @Override
+    public void startActivity(Intent intent, boolean dismissShade) {
+        mActivityStarter.startActivityDismissingKeyguard(intent, false /* onlyProvisioned */, dismissShade, null);
+    }
+
+    @Override
+    public void startPendingIntentDismissingKeyguard(PendingIntent intent) {
+        mActivityStarter.startPendingIntentDismissingKeyguard(intent);
+    }
+
+    @Override
+    public ShadeViewController getNotificationPanelViewController() {
+        return mShadeSurface;
+    }
+
+    @Override
+    public void wakeUpDeviceifDozing() {
+        mPowerInteractor.wakeUpIfDozing("AMBIENT MUSIC", PowerManager.WAKE_REASON_GESTURE);
+    }
+
 }
