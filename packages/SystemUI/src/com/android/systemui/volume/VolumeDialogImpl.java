@@ -238,6 +238,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
     private Window mWindow;
     private CustomDialog mDialog;
+    private ContentObserver mContentObserver;
     private ViewGroup mDialogView;
     private ViewGroup mDialogRowsViewContainer;
     private ViewGroup mDialogRowsView;
@@ -353,6 +354,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     }
     private ExpansionState mExpansionState = ExpansionState.COLLAPSED;
     private ExpansionState mPrevExpansionState = ExpansionState.COLLAPSED;
+    private boolean mExpandable;
 
     // Number of animating rows
     private int mAnimatingRows = 0;
@@ -494,6 +496,19 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 false, volumePercentObserver);
         volumePercentObserver.onChange(true);
 
+        ContentObserver volumeExpandObserver = new ContentObserver(null) {
+            @Override
+            public void onChange(boolean selfChange) {
+                    mExpandable = Settings.System.getInt(
+                    mContext.getContentResolver(),
+                    "volume_panel_expandable", 1) != 0;
+            }
+        };
+        mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor("volume_panel_expandable"),
+                    false, volumeExpandObserver);
+        volumeExpandObserver.onChange(true);
+
         initDimens();
 
         mOrientation = mContext.getResources().getConfiguration().orientation;
@@ -565,6 +580,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         if (mDevicePostureController != null) {
             mDevicePostureController.removeCallback(mDevicePostureControllerCallback);
         }
+        mContext.getContentResolver().unregisterContentObserver(mContentObserver);
     }
 
     @Override
@@ -1566,10 +1582,18 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     mExpansionState = ExpansionState.COLLAPSED;
                     updateRowsH(mDefaultRow, false);
                 }
-                mPrevExpansionState = mExpansionState;
-                mExpansionState = mPrevExpansionState == ExpansionState.EXPANDED
-                        ? ExpansionState.COLLAPSED : ExpansionState.EXPANDED;
-                updateRowsH(mDefaultRow, true);
+
+                if (mExpandable) {
+                    mPrevExpansionState = mExpansionState;
+                    mExpansionState = mExpansionState == ExpansionState.EXPANDED
+                            ? ExpansionState.COLLAPSED : ExpansionState.EXPANDED;
+                    updateRowsH(mDefaultRow, true);
+                } else {
+                    mMediaOutputDialogManager.dismiss();
+                    mVolumeNavigator.openVolumePanel(
+                    mVolumePanelNavigationInteractor.getVolumePanelRoute());
+                }
+
                 if (mExpansionState == ExpansionState.COLLAPSED && !isWindowGravityLeft()) {
                     rotateIcon();
                 } else if (mExpansionState == ExpansionState.COLLAPSED && isWindowGravityLeft()) {
