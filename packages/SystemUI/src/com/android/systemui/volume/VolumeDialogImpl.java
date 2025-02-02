@@ -109,7 +109,10 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.animation.Animation;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
+import android.view.animation.RotateAnimation;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -143,7 +146,6 @@ import com.android.systemui.plugins.VolumeDialogController.State;
 import com.android.systemui.plugins.VolumeDialogController.StreamState;
 import com.android.systemui.res.R;
 import com.android.systemui.statusbar.VibratorHelper;
-import com.android.systemui.statusbar.phone.ExpandableIndicator;
 import com.android.systemui.statusbar.policy.AccessibilityManagerWrapper;
 import com.android.systemui.statusbar.policy.ConfigurationController;
 import com.android.systemui.statusbar.policy.DevicePostureController;
@@ -291,9 +293,10 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
     private ViewGroup mODICaptionsView;
     private CaptionsToggleImageButton mODICaptionsIcon;
     private ViewGroup mSettingsView;
+    private RotateAnimation rotateAnimation;
     private ImageButton mSettingsIcon;
+    private ImageButton mExpandRows;
     private ViewGroup mExpandRowsView;
-    private ExpandableIndicator mExpandRows;
     private ViewGroup mAppVolumeView;
     private ImageButton mAppVolumeIcon;
     private final List<VolumeRow> mRows = new ArrayList<>();
@@ -581,56 +584,50 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         view.getLocationInWindow(locInWindow);
 
         float xExtraSize = 0;
-        float yExtraSize = 0;
 
         final boolean expanded = mExpansionState == ExpansionState.EXPANDED;
         final boolean appsExpanded = mExpansionState == ExpansionState.APPS_EXPANDED;
 
-        // The ringer and rows container has extra height at the top to fit the expanded ringer
-        // drawer. This area should not be touchable unless the ringer drawer is open.
-        // In landscape the ringer expands to the left and it has to be ensured that if there
-        // are multiple rows they are touchable.
+        // The ringer and rows container have extra height at the left to fit the expanded ringer
+        // drawer. This area should not be touchable unless the ringer drawer is open or expandable
+        // rows are not visible.
         // The invisible expandable rows reserve space if the panel is not expanded, this space
         // needs to be touchable.
         // When app rows are expanded, stream rows are invisible and vice versa.
         if (view == mTopContainer) {
-            int extraRowsSize = 0;
-            if (!appsExpanded) {
-                extraRowsSize += getAppRowsExtraSize();
-            }
-            if (!expanded) {
-                extraRowsSize += getExpandableRowsExtraSize();
-            }
-            if (!isLandscape()) {
-                if (!mIsRingerDrawerOpen) {
-                    yExtraSize = getRingerDrawerOpenExtraSize();
+                int extraRowsSize = 0;
+
+                if (!appsExpanded) {
+                        extraRowsSize = getAppRowsExtraSize();
                 }
-                xExtraSize = extraRowsSize;
-            } else {
-                if (!mIsRingerDrawerOpen) {
-                    xExtraSize =
-                            Math.max(getRingerDrawerOpenExtraSize(), extraRowsSize);
-                } else {
-                    if ((getVisibleRowsExtraSize() + extraRowsSize)
-                            > getRingerDrawerOpenExtraSize()) {
-                        xExtraSize = (getVisibleRowsExtraSize() + extraRowsSize)
-                                - getRingerDrawerOpenExtraSize();
-                    }
+                if (mExpansionState != ExpansionState.EXPANDED) {
+                        extraRowsSize += getExpandableRowsExtraSize();
                 }
-            }
+
+                if (!mIsRingerDrawerOpen && mExpansionState != ExpansionState.EXPANDED) {
+                        xExtraSize = Math.max(getRingerDrawerOpenExtraSize(), extraRowsSize);
+                } else if (!mIsRingerDrawerOpen) {
+                        if (getRingerDrawerOpenExtraSize() > getVisibleRowsExtraSize()) {
+                                xExtraSize = getRingerDrawerOpenExtraSize() - getVisibleRowsExtraSize();
+                        }
+                } else if (mExpansionState != ExpansionState.EXPANDED) {
+                        if ((getVisibleRowsExtraSize() + extraRowsSize) > getRingerDrawerOpenExtraSize()) {
+                                xExtraSize = (getVisibleRowsExtraSize() + extraRowsSize) - getRingerDrawerOpenExtraSize();
+                        }
+                }
         }
 
         if (isWindowGravityLeft()) {
             mTouchableRegion.op(
                     locInWindow[0],
-                    locInWindow[1] + (int) yExtraSize,
+                    locInWindow[1],
                     locInWindow[0] + view.getWidth() - (int) xExtraSize,
                     locInWindow[1] + view.getHeight(),
                     Region.Op.UNION);
         } else {
             mTouchableRegion.op(
                     locInWindow[0] + (int) xExtraSize,
-                    locInWindow[1] + (int) yExtraSize,
+                    locInWindow[1],
                     locInWindow[0] + view.getWidth(),
                     locInWindow[1] + view.getHeight(),
                     Region.Op.UNION);
@@ -878,7 +875,6 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             setGravity(mAppVolumeView, Gravity.LEFT);
             setLayoutGravity(mAppVolumeView, Gravity.LEFT);
 
-            mExpandRows.setRotation(-90);
         }
 
         if (mRows.isEmpty()) {
@@ -1227,7 +1223,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         }
 
         ((LinearLayout) mRingerDrawerContainer.findViewById(R.id.volume_drawer_options))
-                .setOrientation(isLandscape() ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+    	        .setOrientation(LinearLayout.HORIZONTAL);
 
         mSelectedRingerContainer.setOnClickListener(view -> {
             if (mIsRingerDrawerOpen) {
@@ -1332,19 +1328,14 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         // tapped, so it should be invisible until that happens. However, position it below
         // the currently selected ringer so that it's ready to animate.
         mRingerDrawerNewSelectionBg.setAlpha(0f);
-
-        if (!isLandscape()) {
-            mRingerDrawerNewSelectionBg.setTranslationY(
-                    getTranslationInDrawerForRingerMode(mState.ringerModeInternal));
-        } else {
-            mRingerDrawerNewSelectionBg.setTranslationX(
-                    getTranslationInDrawerForRingerMode(mState.ringerModeInternal));
-        }
+        
+        mRingerDrawerNewSelectionBg.setTranslationX(
+            getTranslationInDrawerForRingerMode(mState.ringerModeInternal));
 
         // Move the drawer so that the top/outmost ringer choice overlaps with the selected ringer
         // icon.
         if (!isLandscape()) {
-            mRingerDrawerContainer.setTranslationY(mRingerDrawerItemSize * (mRingerCount - 1));
+            mRingerDrawerContainer.setTranslationX(mRingerDrawerItemSize);
         } else {
             mRingerDrawerContainer.setTranslationX(
                     (isWindowGravityLeft() ? -1 : 1) * mRingerDrawerItemSize * (mRingerCount - 1));
@@ -1381,15 +1372,9 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         mAnimateUpBackgroundToMatchDrawer.setInterpolator(Interpolators.FAST_OUT_SLOW_IN);
         mAnimateUpBackgroundToMatchDrawer.start();
 
-        if (!isLandscape()) {
-            mSelectedRingerContainer.animate()
-                    .translationY(getTranslationInDrawerForRingerMode(mState.ringerModeInternal))
-                    .start();
-        } else {
-            mSelectedRingerContainer.animate()
-                    .translationX(getTranslationInDrawerForRingerMode(mState.ringerModeInternal))
-                    .start();
-        }
+        mSelectedRingerContainer.animate()
+                .translationX(getTranslationInDrawerForRingerMode(mState.ringerModeInternal))
+                .start();
 
         updateSelectedRingerContainerDescription(true);
         mSelectedRingerContainer.setImportantForAccessibility(
@@ -1422,7 +1407,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
         if (!isLandscape()) {
             mRingerDrawerContainer.animate()
-                    .translationY(mRingerDrawerItemSize * 2)
+                    .translationX(mRingerDrawerItemSize)
                     .start();
         } else {
             mRingerDrawerContainer.animate()
@@ -1572,7 +1557,15 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                 mExpansionState = mPrevExpansionState == ExpansionState.EXPANDED
                         ? ExpansionState.COLLAPSED : ExpansionState.EXPANDED;
                 updateRowsH(mDefaultRow, true);
-                mExpandRows.setExpanded(mExpansionState == ExpansionState.EXPANDED);
+                if (mExpansionState == ExpansionState.COLLAPSED && !isWindowGravityLeft()) {
+                    rotateIcon();
+                } else if (mExpansionState == ExpansionState.COLLAPSED && isWindowGravityLeft()) {
+                    rotateIconReverse();
+                } else if (mExpansionState == ExpansionState.EXPANDED && isWindowGravityLeft()) {
+                    rotateIcon();
+                } else {
+                    rotateIconReverse();
+                }
             });
         }
     }
@@ -1608,7 +1601,6 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     mPrevExpansionState = mExpansionState;
                     mExpansionState = ExpansionState.COLLAPSED;
                     updateRowsH(mDefaultRow, false);
-                    mExpandRows.setExpanded(false);
                 }
                 mPrevExpansionState = mExpansionState;
                 mExpansionState = mPrevExpansionState == ExpansionState.APPS_EXPANDED
@@ -2021,9 +2013,6 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     }
                     tryToRemoveCaptionsTooltip();
                     mExpansionState = mPrevExpansionState = ExpansionState.COLLAPSED;
-                    if (mExpandRows != null) {
-                        mExpandRows.setExpanded(false);
-                    }
                     mActiveAppRowPackage = null;
                     mAnimatingRows = 0;
                     mDefaultRow = null;
@@ -2713,7 +2702,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             }
         }
         final int newProgress = getProgressFromVolume(row.ss, row.slider, vlevel);
-        if (progress != newProgress || force) {
+        if (progress != newProgress || force && !row.ss.muted) {
             if (mIsTv) {
                 // don't animate slider on TVs
                 row.slider.setProgress(newProgress, false);
@@ -2925,9 +2914,7 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         }
 
         final Rect bounds = mRingerAndDrawerContainerBackground.copyBounds();
-        if (!isLandscape()) {
-            bounds.top = (int) (mRingerDrawerClosedAmount * getRingerDrawerOpenExtraSize());
-        } else if (isWindowGravityLeft()) {
+        if (isWindowGravityLeft()) {
             bounds.right = (int) ((mDialogCornerRadius / 2) + mRingerDrawerItemSize
                     + (1f - mRingerDrawerClosedAmount) * getRingerDrawerOpenExtraSize());
         } else {
@@ -2966,11 +2953,6 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
         // Inset the top so that the color only renders below the ringer drawer, which has its own
         // background. In landscape, reduce the inset slightly since we are using the background to
         // fill in the corners of the closed ringer drawer.
-        background.setLayerInsetTop(0,
-                !isLandscape()
-                        ? mDialogRowsViewContainer.getTop()
-                        : mDialogRowsViewContainer.getTop() - mDialogCornerRadius);
-
         // Set gravity to top and opposite side where additional rows will be added.
         background.setLayerGravity(0,
                 isWindowGravityLeft() ? Gravity.TOP | Gravity.LEFT : Gravity.TOP | Gravity.RIGHT);
@@ -3180,6 +3162,21 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
             }
             return false;
         }
+    }
+
+    private void rotateIcon() {
+        rotateAnimation = new RotateAnimation(0, 180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        rotateAnimation.setDuration(400);
+        rotateAnimation.setFillAfter(true);
+        rotateAnimation.setInterpolator(new LinearInterpolator());
+        mExpandRows.startAnimation(rotateAnimation);
+    }
+    private void rotateIconReverse() {
+        rotateAnimation = new RotateAnimation(180, 0, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        rotateAnimation.setDuration(400);
+        rotateAnimation.setFillAfter(true);
+        rotateAnimation.setInterpolator(new LinearInterpolator());
+        mExpandRows.startAnimation(rotateAnimation);
     }
 
     private final class VolumeSeekBarChangeListener implements OnSeekBarChangeListener {
@@ -3416,10 +3413,6 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
 
         @Override
         public void onClick(View view) {
-            // If the ringer drawer isn't open, don't let anything in it be clicked.
-            if (!mIsRingerDrawerOpen) {
-                return;
-            }
 
             setRingerMode(mClickedRingerMode);
 
@@ -3439,27 +3432,16 @@ public class VolumeDialogImpl implements VolumeDialog, Dumpable,
                     .withEndAction(() -> {
                         mRingerDrawerNewSelectionBg.setAlpha(0f);
 
-                        if (!isLandscape()) {
-                            mSelectedRingerContainer.setTranslationY(
-                                    getTranslationInDrawerForRingerMode(mClickedRingerMode));
-                        } else {
-                            mSelectedRingerContainer.setTranslationX(
-                                    getTranslationInDrawerForRingerMode(mClickedRingerMode));
-                        }
+                        mSelectedRingerContainer.setTranslationX(
+                            getTranslationInDrawerForRingerMode(mClickedRingerMode));
 
                         mSelectedRingerContainer.setVisibility(VISIBLE);
                         hideRingerDrawer();
                     });
 
-            if (!isLandscape()) {
-                mRingerDrawerNewSelectionBg.animate()
-                        .translationY(getTranslationInDrawerForRingerMode(mClickedRingerMode))
-                        .start();
-            } else {
-                mRingerDrawerNewSelectionBg.animate()
-                        .translationX(getTranslationInDrawerForRingerMode(mClickedRingerMode))
-                        .start();
-            }
+            mRingerDrawerNewSelectionBg.animate()
+                .translationX(getTranslationInDrawerForRingerMode(mClickedRingerMode))
+                .start();
         }
     }
 }

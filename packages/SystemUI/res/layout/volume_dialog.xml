@@ -103,9 +103,10 @@
             android:paddingLeft="@dimen/volume_dialog_ringer_rows_padding"
             android:paddingBottom="@dimen/volume_dialog_ringer_rows_padding"
             android:paddingRight="@dimen/volume_dialog_ringer_rows_padding">
-            <com.android.systemui.statusbar.phone.ExpandableIndicator
+            <com.android.keyguard.AlphaOptimizedImageButton
                 android:id="@+id/expandable_indicator"
                 style="@style/VolumeButtons"
+                android:src="@drawable/volume_settings"
                 android:background="@drawable/volume_drawer_selection_bg"
                 android:layout_width="@dimen/volume_dialog_tap_target_size"
                 android:layout_height="@dimen/volume_dialog_tap_target_size"
