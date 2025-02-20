@@ -137,7 +137,7 @@ public abstract class LogoImage extends ImageView implements DarkReceiver {
         switch (mLogoStyle) {
             case 0:
             default:
-                drawable = mContext.getResources().getDrawable(R.drawable.ic_evolution_logo);
+                drawable = mContext.getResources().getDrawable(R.drawable.ic_xtended_logo);
                 break;
             case 1:
                 drawable = mContext.getResources().getDrawable(R.drawable.ic_android_logo);
